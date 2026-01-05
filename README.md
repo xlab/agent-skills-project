@@ -87,7 +87,19 @@ Sharing is just a message:
 
 ## 🗂 Community Resources
 
-*Coming soon — be the first!*
+### 🚀 Go Development Toolkit — [@dsjacobsen](https://github.com/dsjacobsen/agent-resources)
+
+A comprehensive Claude Code toolkit for Go developers.
+
+```bash
+uvx add-skill dsjacobsen/golang-pro      # Expert Go knowledge
+uvx add-agent dsjacobsen/go-reviewer     # Code review agent
+uvx add-command dsjacobsen/go-check      # Quick code check
+```
+
+**Includes**: 1 skill, 9 agents, 11 commands covering scaffolding, testing, API building, refactoring, and more.
+
+---
 
 **Built something useful?** [Open an issue](https://github.com/kasperjunge/agent-resources-project/issues) with a link to your `agent-resources` repo and we'll add it here.
 
