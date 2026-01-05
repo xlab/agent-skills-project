@@ -41,9 +41,25 @@ uvx add-agent <github-username>/<agent-name>       # Sub-agents
 
 Build a personal collection of resources that travels with you.
 
-### Step 1: Create your repo
+### Quick Start
 
-Create a GitHub repository named **`agent-resources`**:
+```bash
+uvx create-agent-resources-repo
+```
+
+This creates a ready-to-use `agent-resources/` directory with example skill, command, and agent.
+
+**With GitHub automation** (requires [gh CLI](https://cli.github.com/)):
+
+```bash
+uvx create-agent-resources-repo --github
+```
+
+Creates the repo, pushes to GitHub, and you're immediately shareable.
+
+### Manual Setup
+
+Or create the structure yourself — it's just a GitHub repo named **`agent-resources`**:
 
 ```
 your-username/agent-resources/
@@ -57,7 +73,7 @@ your-username/agent-resources/
         └── my-agent.md
 ```
 
-### Step 2: There is no step 2
+### That's It
 
 Your resources are now installable:
 
