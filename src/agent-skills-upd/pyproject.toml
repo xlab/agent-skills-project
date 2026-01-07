@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "agent-skills-upd"
-version = "0.3.0"
+version = "0.0.2"
 description = "Update your Claude Code, Codex, OpenCode, Amp, ClawdBot skills"
 readme = "README.md"
 requires-python = ">=3.10"

@@ -4,12 +4,12 @@ build-backend = "hatchling.build"
 
 [project]
 name = "upd-skill"
-version = "0.0.1"
+version = "0.0.3"
 description = "CLI tool for updating Claude Code, Codex, OpenCode, Amp, Clawdbot agent skills."
 readme = "README.md"
 requires-python = ">=3.10"
 license = "MIT"
-dependencies = ["agent-skills-upd>=0.0.1"]
+dependencies = ["agent-skills-upd>=0.0.2"]
 
 [project.scripts]
 upd-skill = "agent_skills_upd.cli.skill:app"
