@@ -155,7 +155,7 @@ def find_resource_in_repo(
 
 def fetch_resource(
     username: str,
-    name: str,
+    name: str | None,
     dest: Path,
     resource_type: ResourceType,
     overwrite: bool = True,
@@ -167,7 +167,7 @@ def fetch_resource(
 
     Args:
         username: GitHub (or alternative Git host) username
-        name: Name of the resource to fetch
+        name: Name of the resource to fetch (optional for root-level skills)
         dest: Destination directory (e.g., .claude/skills/, .claude/commands/)
         resource_type: Type of resource (SKILL, COMMAND, or AGENT)
         overwrite: Whether to overwrite existing resource
@@ -183,18 +183,20 @@ def fetch_resource(
     """
     config = RESOURCE_CONFIGS[resource_type]
 
-    # Determine destination path
-    if config.is_directory:
-        resource_dest = dest / name
-    else:
-        resource_dest = dest / f"{name}{config.file_extension}"
+    resource_dest = None
+    if name is not None:
+        # Determine destination path
+        if config.is_directory:
+            resource_dest = dest / name
+        else:
+            resource_dest = dest / f"{name}{config.file_extension}"
 
-    # Check if resource already exists locally
-    if resource_dest.exists() and not overwrite:
-        raise ResourceExistsError(
-            f"{resource_type.value.capitalize()} '{name}' already exists at {resource_dest}\n"
-            f"Use --overwrite to replace it."
-        )
+        # Check if resource already exists locally
+        if resource_dest.exists() and not overwrite:
+            raise ResourceExistsError(
+                f"{resource_type.value.capitalize()} '{name}' already exists at {resource_dest}\n"
+                f"Use --overwrite to replace it."
+            )
 
     # Download tarball
     tarball_url = f"https://{host}/{username}/{repo}/archive/refs/heads/main.tar.gz"
@@ -231,8 +233,11 @@ def fetch_resource(
         # Tarball extracts to: <repo>-main/<patterns>
         repo_dir = extract_path / f"{repo}-main"
 
-        resource_source = find_resource_in_repo(repo_dir, resource_type, name)
+        resource_source = (
+            find_resource_in_repo(repo_dir, resource_type, name) if name else None
+        )
         root_skill_message = None
+        root_skill_name = None
         if (
             resource_source is None
             and resource_type == ResourceType.SKILL
@@ -249,24 +254,31 @@ def fetch_resource(
                 )
                 if root_skill_error:
                     root_skill_message = root_skill_error
-                elif root_skill_name != name:
-                    root_skill_message = (
-                        "Root SKILL.md frontmatter name "
-                        f"'{root_skill_name}' does not match requested '{name}'."
-                    )
                 else:
-                    resource_source = root_skill_file.parent
+                    if name is None:
+                        name = root_skill_name
+                        resource_source = root_skill_file.parent
+                    elif root_skill_name != name:
+                        root_skill_message = (
+                            "Root SKILL.md frontmatter name "
+                            f"'{root_skill_name}' does not match requested '{name}'."
+                        )
+                    else:
+                        resource_source = root_skill_file.parent
 
         if resource_source is None or not resource_source.exists():
+            display_name = name or "<unspecified>"
+            patterns_name = name or "<skill-name>"
             patterns_tried = [
-                p.format(name=name) for p in RESOURCE_SEARCH_PATTERNS[resource_type]
+                p.format(name=patterns_name)
+                for p in RESOURCE_SEARCH_PATTERNS[resource_type]
             ]
             patterns_list = "\n".join([f"- {pattern}" for pattern in patterns_tried])
 
             validation = validate_repository_structure(repo_dir)
 
             error_msg = (
-                f"{resource_type.value.capitalize()} '{name}' not found in {username}/{repo}.\n"
+                f"{resource_type.value.capitalize()} '{display_name}' not found in {username}/{repo}.\n"
                 f"Tried these locations:\n{patterns_list}\n"
             )
 
@@ -292,6 +304,20 @@ def fetch_resource(
             )
 
             raise ResourceNotFoundError(error_msg)
+
+        if resource_dest is None:
+            if name is None:
+                raise SkillUpdError("Skill name could not be determined.")
+            if config.is_directory:
+                resource_dest = dest / name
+            else:
+                resource_dest = dest / f"{name}{config.file_extension}"
+
+            if resource_dest.exists() and not overwrite:
+                raise ResourceExistsError(
+                    f"{resource_type.value.capitalize()} '{name}' already exists at {resource_dest}\n"
+                    f"Use --overwrite to replace it."
+                )
 
         # Remove existing if overwriting
         if resource_dest.exists():

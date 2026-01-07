@@ -271,6 +271,41 @@ def test_manual_repo_override_root_skill():
             assert (result / "assets" / "note.txt").read_text() == "note"
 
 
+def test_manual_repo_override_root_skill_derive_name():
+    """Test root-level SKILL.md name derivation for manual repo overrides."""
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        tmp_path = Path(tmp_dir)
+        dest_path = tmp_path / "destination"
+
+        tarball_bytes = create_mock_repo_tarball(
+            tmp_path / "source",
+            "custom-skill",
+            "root",
+            skill_name="root-derived",
+        )
+
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.content = tarball_bytes
+
+        with patch("httpx.Client") as mock_client:
+            mock_client.return_value.__enter__.return_value.get.return_value = mock_response
+
+            result = fetch_resource(
+                "testuser",
+                None,
+                dest_path,
+                ResourceType.SKILL,
+                overwrite=False,
+                repo="custom-skill",
+            )
+
+            assert result.exists()
+            assert result.name == "root-derived"
+            content = (result / "SKILL.md").read_text()
+            assert "Root structure" in content
+
+
 def test_manual_repo_override_root_skill_name_mismatch():
     """Test error messages when root SKILL.md name mismatches."""
     with tempfile.TemporaryDirectory() as tmp_dir:

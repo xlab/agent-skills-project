@@ -79,7 +79,14 @@ def add(
         skill-upd kasperjunge/analyze-paper --global
     """
     try:
-        host, username, skill_name = parse_resource_ref(skill_ref)
+        clawd_envs = {"clawd", "clawdbot", "clawdis"}
+        if environment in clawd_envs and "/" not in skill_ref:
+            host = "upd.dev"
+            username = "clawdhub"
+            skill_name = None
+            repo = skill_ref
+        else:
+            host, username, skill_name = parse_resource_ref(skill_ref)
     except typer.BadParameter as e:
         typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
@@ -103,6 +110,7 @@ def add(
                 host=host,
                 repo=repo,
             )
+        skill_name = skill_path.name
         print_success_message("skill", host, skill_name, username)
     except RepoNotFoundError as e:
         typer.echo(f"Error: {e}", err=True)
