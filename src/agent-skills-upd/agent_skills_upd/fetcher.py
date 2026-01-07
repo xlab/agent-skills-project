@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
 
+import frontmatter
 import httpx
 
 from agent_skills_upd.exceptions import (
@@ -83,6 +84,31 @@ RESOURCE_SEARCH_PATTERNS = {
 
 # Name of the repository to fetch resources from
 REPO_NAME = "agent-resources"
+
+
+def find_root_skill_file(repo_dir: Path) -> Path | None:
+    """Find a root-level SKILL.md file case-insensitively."""
+    for path in sorted(repo_dir.iterdir(), key=lambda entry: entry.name.lower()):
+        if path.is_file() and path.name.lower() == "skill.md":
+            return path
+    return None
+
+
+def parse_frontmatter_name(skill_file: Path) -> tuple[str | None, str | None]:
+    """Parse the skill name from frontmatter."""
+    content = skill_file.read_text(encoding="utf-8")
+    try:
+        post = frontmatter.loads(content)
+    except Exception:
+        return None, "Root SKILL.md frontmatter is invalid."
+
+    name = post.metadata.get("name") if post.metadata else None
+    name_value = str(name).strip() if name is not None else ""
+    if not name_value:
+        return None, "Root SKILL.md frontmatter missing name."
+
+    return name_value, None
+
 
 def validate_repository_structure(repo_dir: Path) -> dict:
     """Simple validation that provides useful feedback."""
@@ -206,6 +232,30 @@ def fetch_resource(
         repo_dir = extract_path / f"{repo}-main"
 
         resource_source = find_resource_in_repo(repo_dir, resource_type, name)
+        root_skill_message = None
+        if (
+            resource_source is None
+            and resource_type == ResourceType.SKILL
+            and repo != REPO_NAME
+        ):
+            root_skill_file = find_root_skill_file(repo_dir)
+            if root_skill_file is None:
+                root_skill_message = (
+                    "Root SKILL.md not found (case-insensitive) in repo root."
+                )
+            else:
+                root_skill_name, root_skill_error = parse_frontmatter_name(
+                    root_skill_file
+                )
+                if root_skill_error:
+                    root_skill_message = root_skill_error
+                elif root_skill_name != name:
+                    root_skill_message = (
+                        "Root SKILL.md frontmatter name "
+                        f"'{root_skill_name}' does not match requested '{name}'."
+                    )
+                else:
+                    resource_source = root_skill_file.parent
 
         if resource_source is None or not resource_source.exists():
             patterns_tried = [
@@ -228,6 +278,10 @@ def fetch_resource(
                 error_msg += (
                     f"\nFound directories: {', '.join(validation['patterns_found'])}\n"
                 )
+
+            if root_skill_message:
+                error_msg += "\nManual repo override check:\n"
+                error_msg += f"- {root_skill_message}\n"
 
             error_msg += (
                 "\nQuick fixes:\n"

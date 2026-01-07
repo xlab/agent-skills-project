@@ -14,12 +14,14 @@ from agent_skills_upd.exceptions import ResourceNotFoundError
 from agent_skills_upd.fetcher import ResourceType, fetch_resource
 
 
-def create_mock_repo_tarball(tmp_path: Path, repo_name: str, structure: str) -> bytes:
+def create_mock_repo_tarball(
+    tmp_path: Path, repo_name: str, structure: str, skill_name: str = "test-skill"
+) -> bytes:
     """Create a mock GitHub tarball with specified structure."""
     repo_dir = tmp_path / f"{repo_name}-main"
 
     if structure == "claude":
-        skill_dir = repo_dir / ".claude" / "skills" / "test-skill"
+        skill_dir = repo_dir / ".claude" / "skills" / skill_name
         skill_dir.mkdir(parents=True)
         (skill_dir / "SKILL.md").write_text("# Test Skill (Claude structure)")
 
@@ -28,7 +30,7 @@ def create_mock_repo_tarball(tmp_path: Path, repo_name: str, structure: str) -> 
         (cmd_dir / "test-cmd.md").write_text("# Test Command (Claude structure)")
 
     elif structure == "anthropic":
-        skill_dir = repo_dir / "skills" / "test-skill"
+        skill_dir = repo_dir / "skills" / skill_name
         skill_dir.mkdir(parents=True)
         (skill_dir / "SKILL.md").write_text("# Test Skill (Anthropic structure)")
 
@@ -37,13 +39,22 @@ def create_mock_repo_tarball(tmp_path: Path, repo_name: str, structure: str) -> 
         (cmd_dir / "test-cmd.md").write_text("# Test Command (Anthropic structure)")
 
     elif structure == "opencode":
-        skill_dir = repo_dir / "skill" / "test-skill"
+        skill_dir = repo_dir / "skill" / skill_name
         skill_dir.mkdir(parents=True)
         (skill_dir / "SKILL.md").write_text("# Test Skill (OpenCode structure)")
 
         cmd_dir = repo_dir / "command"
         cmd_dir.mkdir(parents=True)
         (cmd_dir / "test-cmd.md").write_text("# Test Command (OpenCode structure)")
+    elif structure == "root":
+        repo_dir.mkdir(parents=True)
+        (repo_dir / "SKILL.md").write_text(
+            f"---\nname: {skill_name}\n---\n# Test Skill (Root structure)"
+        )
+        (repo_dir / "asset.txt").write_text("asset")
+        assets_dir = repo_dir / "assets"
+        assets_dir.mkdir()
+        (assets_dir / "note.txt").write_text("note")
 
     tarball_path = tmp_path / "repo.tar.gz"
     with tarfile.open(tarball_path, "w:gz") as tar:
@@ -221,6 +232,82 @@ def test_enhanced_error_messages():
                 assert "Quick fixes:" in error_msg
                 assert "--repo" in error_msg
                 assert "--dest" in error_msg
+
+
+def test_manual_repo_override_root_skill():
+    """Test root-level SKILL.md handling for manual repo overrides."""
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        tmp_path = Path(tmp_dir)
+        dest_path = tmp_path / "destination"
+
+        tarball_bytes = create_mock_repo_tarball(
+            tmp_path / "source",
+            "custom-skill",
+            "root",
+            skill_name="root-skill",
+        )
+
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.content = tarball_bytes
+
+        with patch("httpx.Client") as mock_client:
+            mock_client.return_value.__enter__.return_value.get.return_value = mock_response
+
+            result = fetch_resource(
+                "testuser",
+                "root-skill",
+                dest_path,
+                ResourceType.SKILL,
+                overwrite=False,
+                repo="custom-skill",
+            )
+
+            assert result.exists()
+            assert result.name == "root-skill"
+            content = (result / "SKILL.md").read_text()
+            assert "Root structure" in content
+            assert (result / "asset.txt").read_text() == "asset"
+            assert (result / "assets" / "note.txt").read_text() == "note"
+
+
+def test_manual_repo_override_root_skill_name_mismatch():
+    """Test error messages when root SKILL.md name mismatches."""
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        tmp_path = Path(tmp_dir)
+        dest_path = tmp_path / "destination"
+
+        tarball_bytes = create_mock_repo_tarball(
+            tmp_path / "source",
+            "custom-skill",
+            "root",
+            skill_name="actual-skill",
+        )
+
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.content = tarball_bytes
+
+        with patch("httpx.Client") as mock_client:
+            mock_client.return_value.__enter__.return_value.get.return_value = mock_response
+
+            try:
+                fetch_resource(
+                    "testuser",
+                    "requested-skill",
+                    dest_path,
+                    ResourceType.SKILL,
+                    overwrite=False,
+                    repo="custom-skill",
+                )
+                assert False, "Should have raised ResourceNotFoundError"
+            except ResourceNotFoundError as exc:
+                error_msg = str(exc)
+                assert "Manual repo override check:" in error_msg
+                assert (
+                    "frontmatter name 'actual-skill' does not match requested 'requested-skill'"
+                    in error_msg
+                )
 
 
 def test_amp_environment_destinations():
