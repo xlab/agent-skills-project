@@ -46,6 +46,27 @@ def add(
             help="Install to ~/.claude/ instead of ./.claude/",
         ),
     ] = False,
+    repo: Annotated[
+        str,
+        typer.Option(
+            "--repo",
+            help="Repository name to fetch from (default: agent-resources).",
+        ),
+    ] = "agent-resources",
+    dest: Annotated[
+        str,
+        typer.Option(
+            "--dest",
+            help="Custom destination path.",
+        ),
+    ] = "",
+    environment: Annotated[
+        str,
+        typer.Option(
+            "--env",
+            help="Target environment (claude, opencode, codex, amp, clawdbot).",
+        ),
+    ] = "",
 ) -> None:
     """
     Update a skill from a GitHub user's agent-resources repository.
@@ -63,13 +84,24 @@ def add(
         typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
 
-    dest = get_destination("skills", global_install)
+    dest_path = get_destination(
+        "skills",
+        global_install,
+        dest if dest else None,
+        environment if environment else None,
+    )
     scope = "user" if global_install else "project"
 
     try:
         with fetch_spinner():
             skill_path = fetch_resource(
-                username, skill_name, dest, ResourceType.SKILL, overwrite, host=host
+                username,
+                skill_name,
+                dest_path,
+                ResourceType.SKILL,
+                overwrite,
+                host=host,
+                repo=repo,
             )
         print_success_message("skill", host, skill_name, username)
     except RepoNotFoundError as e:

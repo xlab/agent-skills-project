@@ -52,6 +52,32 @@ uvx upd-command <username>/<command-name>   # Slash commands
 uvx upd-agent <username>/<agent-name>       # Sub-agents
 ```
 
+### Examples for Codex, OpenCode, or different repo names
+
+```bash
+# Install from different repository structures
+uvx upd-skill username/skill-name --repo different-repo
+
+# Install from different Git host
+uvx upd-skill upd.dev/username/skill-name --repo different-repo # Skills from Upd.dev
+
+# Install to different environments
+uvx upd-skill username/skill-name --env opencode   # e.g. OpenCode
+uvx upd-skill username/skill-name --env codex      # e.g. Codex
+
+# Custom installation path
+uvx upd-skill username/skill-name --dest ./my-path/
+
+# Global installation
+uvx upd-skill username/skill-name --global
+```
+
+**Supports multiple repository structures:**
+
+- `.claude/skills/` (standard)
+- `skills/` (Anthropic style)
+- `skill/` (OpenCode style)
+
 ---
 
 ## 🤖 Supports Your Favorite Agent

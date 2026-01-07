@@ -45,3 +45,8 @@ htmlcov/
 
 .notes/
 .claude/
+
+# Agent resources environment directories
+.opencode/
+.codex/
+.config/opencode/
