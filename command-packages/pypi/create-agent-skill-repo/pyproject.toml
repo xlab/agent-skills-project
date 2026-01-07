@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "create-agent-skill-repo"
-version = "0.0.7"
+version = "0.0.8"
 description = "Create a personal agent-resources repository for Claude Code, Codex, OpenCode, Amp, Clawdbot and others."
 readme = "README.md"
 requires-python = ">=3.10"

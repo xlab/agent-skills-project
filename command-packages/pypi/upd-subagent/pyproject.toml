@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "upd-subagent"
-version = "0.0.7"
+version = "0.0.8"
 description = "CLI tool for updating Claude Code subagents from git."
 requires-python = ">=3.10"
 license = "MIT"

@@ -55,6 +55,10 @@ def create_mock_repo_tarball(
         assets_dir = repo_dir / "assets"
         assets_dir.mkdir()
         (assets_dir / "note.txt").write_text("note")
+    elif structure == "rootdir":
+        skill_dir = repo_dir / skill_name
+        skill_dir.mkdir(parents=True)
+        (skill_dir / "SKILL.md").write_text("# Test Skill (Root dir structure)")
 
     tarball_path = tmp_path / "repo.tar.gz"
     with tarfile.open(tarball_path, "w:gz") as tar:
@@ -158,6 +162,38 @@ def test_opencode_pattern_detection():
             assert result.name == "test-skill"
             content = (result / "SKILL.md").read_text()
             assert "OpenCode structure" in content
+
+
+def test_root_dir_pattern_detection():
+    """Test pattern detection for root-level skill directories."""
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        tmp_path = Path(tmp_dir)
+        dest_path = tmp_path / "destination"
+
+        tarball_bytes = create_mock_repo_tarball(
+            tmp_path / "source", "agent-resources", "rootdir"
+        )
+
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.content = tarball_bytes
+
+        with patch("httpx.Client") as mock_client:
+            mock_client.return_value.__enter__.return_value.get.return_value = mock_response
+
+            result = fetch_resource(
+                "testuser",
+                "test-skill",
+                dest_path,
+                ResourceType.SKILL,
+                overwrite=False,
+                repo="agent-resources",
+            )
+
+            assert result.exists()
+            assert result.name == "test-skill"
+            content = (result / "SKILL.md").read_text()
+            assert "Root dir structure" in content
 
 
 def test_custom_destination():

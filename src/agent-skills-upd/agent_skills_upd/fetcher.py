@@ -65,6 +65,7 @@ RESOURCE_CONFIGS: dict[ResourceType, ResourceConfig] = {
 RESOURCE_SEARCH_PATTERNS = {
     ResourceType.SKILL: [
         ".claude/skills/{name}/",  # Current (first for backward compat)
+        "{name}/",  # Repo root skill directory
         "skills/{name}/",  # Anthropics pattern
         "skill/{name}/",  # opencode pattern
         "skills/.curated/{name}/",  # OpenAI pattern
