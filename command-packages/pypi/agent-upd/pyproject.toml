@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "agent-upd"
-version = "0.0.9"
+version = "0.0.10"
 description = "Update Claude Code sub-agents from GitHub to your project"
 readme = "README.md"
 requires-python = ">=3.10"

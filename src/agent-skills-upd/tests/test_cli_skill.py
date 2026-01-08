@@ -63,5 +63,31 @@ def test_clawdhub_format_uses_api_fetch():
         args, kwargs = mock_fetch.call_args
         assert args[0] == "weather"
         assert args[1] == dest_path
+        assert args[2] is True
+        assert kwargs == {}
+
+
+def test_overwrite_flag_accepts_false():
+    """--overwrite=false should disable overwriting."""
+    runner = CliRunner()
+
+    with (
+        patch("agent_skills_upd.cli.skill.fetch_clawdhub_skill") as mock_fetch,
+        patch("agent_skills_upd.cli.skill.fetch_spinner", return_value=nullcontext()),
+    ):
+        mock_fetch.return_value = ClawdhubFetchResult(
+            path=Path("weather"),
+            old_version=None,
+            new_version="1.2.3",
+            was_existing=False,
+        )
+
+        result = runner.invoke(
+            app,
+            ["clawdhub.com/weather", "--overwrite=false"],
+        )
+
+        assert result.exit_code == 0
+        args, kwargs = mock_fetch.call_args
         assert args[2] is False
         assert kwargs == {}

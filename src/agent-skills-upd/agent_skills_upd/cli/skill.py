@@ -53,6 +53,18 @@ def parse_clawdhub_skill_ref(ref: str) -> str | None:
     return slug
 
 
+def parse_overwrite_flag(value: str) -> bool:
+    """Parse overwrite flag values like true/false."""
+    normalized = value.strip().lower()
+    if normalized in {"1", "true", "yes", "y", "on"}:
+        return True
+    if normalized in {"0", "false", "no", "n", "off"}:
+        return False
+    raise typer.BadParameter(
+        f"Invalid value for --overwrite: '{value}'. Use true or false."
+    )
+
+
 @app.command()
 def add(
     skill_ref: Annotated[
@@ -66,12 +78,13 @@ def add(
         ),
     ],
     overwrite: Annotated[
-        bool,
+        str,
         typer.Option(
             "--overwrite",
-            help="Overwrite existing skill if it exists.",
+            help="Overwrite existing skill if it exists (use --overwrite=false to disable).",
+            metavar="BOOL",
         ),
-    ] = False,
+    ] = "true",
     global_install: Annotated[
         bool,
         typer.Option(
@@ -113,6 +126,7 @@ def add(
         skill-upd kasperjunge/analyze-paper --global
     """
     try:
+        overwrite_value = parse_overwrite_flag(overwrite)
         clawd_envs = {"clawd", "clawdbot", "clawdis"}
         clawdhub_slug = parse_clawdhub_skill_ref(skill_ref)
         if clawdhub_slug:
@@ -147,7 +161,7 @@ def add(
                 clawdhub_result = fetch_clawdhub_skill(
                     skill_name,
                     dest_path,
-                    overwrite,
+                    overwrite_value,
                 )
             else:
                 skill_path = fetch_resource(
@@ -155,7 +169,7 @@ def add(
                     skill_name,
                     dest_path,
                     ResourceType.SKILL,
-                    overwrite,
+                    overwrite_value,
                     host=host,
                     repo=repo,
                 )
